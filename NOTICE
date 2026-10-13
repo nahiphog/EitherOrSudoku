@@ -1,0 +1,6 @@
+Either Or Sudoku includes a derived copy of the TypeScript solving engine from
+https://github.com/AImenes/sudokUI (GPL-3.0-or-later).
+
+The imported engine lives in lib/sudokui/ and retains its original source
+headers and GPL-3.0 license. This project is distributed under GPL-3.0-or-later;
+see LICENSE.
