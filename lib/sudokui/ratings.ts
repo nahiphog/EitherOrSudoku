@@ -175,9 +175,19 @@ export const TECHS = {
 
 export type Tech = keyof typeof TECHS;
 
+/**
+ * Temporary Either Or walkthrough limit: stop the imported human repertoire
+ * before uniqueness techniques. Brute Force stays exempt as the fallback.
+ */
+export const TEMPORARILY_DISABLED_FROM = TECHS.UNIQUENESS_1.index;
+
+export function isTemporarilyDisabled(tech: Tech): boolean {
+  return tech !== 'BRUTE_FORCE' && TECHS[tech].index >= TEMPORARILY_DISABLED_FROM;
+}
+
 /** Techniques in HoDoKu search order (implemented + enabled only). */
 export const SOLVE_ORDER: Tech[] = (Object.keys(TECHS) as Tech[])
-  .filter((k) => TECHS[k].implemented && TECHS[k].enabled)
+  .filter((k) => TECHS[k].implemented && TECHS[k].enabled && !isTemporarilyDisabled(k))
   .sort((a, b) => TECHS[a].index - TECHS[b].index);
 
 /**

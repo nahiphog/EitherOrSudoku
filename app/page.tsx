@@ -1,37 +1,140 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { makePuzzle, solveEitherOr, type Edge } from "@/lib/either-or";
-import { techniqueFamilies } from "@/lib/technique-catalog";
-import { classicTechniqueModules } from "@/lib/sudokui-index";
+import { useRef, useState } from "react";
+import { makePuzzle, snyderCandidates, type Edge } from "@/lib/either-or";
+import { analyzePuzzle, digPuzzle, type PuzzleAnalysis } from "@/lib/solve-analysis";
+import { bit } from "@/lib/sudokui/board";
+import { encodeCompactPuzzle } from "@/lib/compact";
+
+function formatElapsed(milliseconds: number) {
+  return milliseconds >= 1000 ? `${(milliseconds / 1000).toFixed(2)} s` : `${milliseconds.toFixed(1)} ms`;
+}
 
 function BorderClue({ edge }: { edge: Edge }) {
-  const ar = Math.floor(edge.a / 9), ac = edge.a % 9, br = Math.floor(edge.b / 9), bc = edge.b % 9;
-  const across = ar === br;
-  const style = across ? { left: `${((ac + bc + 1) / 2) * 11.111}%`, top: `${(ar + .5) * 11.111}%` } : { left: `${(ac + .5) * 11.111}%`, top: `${((ar + br + 1) / 2) * 11.111}%` };
-  return <span className="border-clue" style={style}>{edge.digit}</span>;
+  const rowA = Math.floor(edge.a / 9), columnA = edge.a % 9;
+  const rowB = Math.floor(edge.b / 9), columnB = edge.b % 9;
+  const across = rowA === rowB;
+  // Anchor to a numbered grid line, not a rounded percentage. A clue can
+  // therefore only sit on the shared border of two adjacent cells.
+  const style = across
+    ? { left: `calc(3px + (100% - 6px) * ${Math.max(columnA, columnB)} / 9)`, top: `calc(3px + (100% - 6px) * ${rowA + .5} / 9)` }
+    : { left: `calc(3px + (100% - 6px) * ${columnA + .5} / 9)`, top: `calc(3px + (100% - 6px) * ${Math.max(rowA, rowB)} / 9)` };
+  return <span className={`border-clue ${across ? "between-columns" : "between-rows"}`} style={style}>{edge.digit}</span>;
+}
+
+function SolveWalkthrough({ analysis, edges, label }: { analysis: PuzzleAnalysis | null; edges: Edge[]; label: string }) {
+  const [stepIndex, setStepIndex] = useState(0);
+  const maxStep = analysis?.steps.length ?? 0;
+  const visibleStep = Math.min(stepIndex, maxStep);
+  const previousValues = visibleStep === 0 ? analysis?.initial.values : visibleStep === 1 ? analysis?.initial.values : analysis?.steps[visibleStep - 2].values;
+  const walkthrough = analysis && (visibleStep === 0
+    ? { tech: "Initial candidate map", label: "Step 0", description: "Border-clue eliminations are applied before any classical technique.", values: analysis.initial.values, candidates: analysis.initial.candidates, removed: [] }
+    : analysis.steps[visibleStep - 1]);
+  return <section className="walkthrough">
+    <h3>{label} solve walkthrough</h3>
+    {analysis?.solutionCount !== 1 ? <p className="notice">{analysis?.solutionCount === 0 ? "This border-clue layout has no valid solution." : "This border-clue layout does not have a unique solution, so no definitive solving walkthrough is shown."}</p> : <>
+      <div className="analysis-summary"><span><b>{analysis.solvedByLogic ? "Solved logically" : "Logic paused"}</b><small>{analysis.rating}</small></span><span><b>{analysis.steps.length}</b><small>technique steps</small></span></div>
+      {walkthrough ? <>
+        <div className="step-card"><div><span className="tech-label">{walkthrough.label}</span><h3>{walkthrough.tech}</h3><p>{walkthrough.description}</p></div><span>{visibleStep} / {maxStep}</span></div>
+        <input className="step-slider" type="range" min="0" max={maxStep} value={visibleStep} onChange={(event) => setStepIndex(Number(event.target.value))} aria-label={`${label} walkthrough step`} />
+        <div className="step-controls" aria-label={`${label} walkthrough controls`}><button onClick={() => setStepIndex(0)} disabled={visibleStep === 0} aria-label="Go to step 0">&lt;&lt;</button><button onClick={() => setStepIndex((index) => Math.max(0, Math.min(maxStep, index) - 1))} disabled={visibleStep === 0} aria-label="Go to previous step">&lt;</button><button onClick={() => setStepIndex((index) => Math.min(maxStep, index + 1))} disabled={visibleStep === maxStep} aria-label="Go to next step">&gt;</button><button onClick={() => setStepIndex(maxStep)} disabled={visibleStep === maxStep} aria-label="Go to final step">&gt;&gt;</button></div>
+        <div className="sudoku-board walkthrough-board" aria-label={`Snyder notations after selected ${label} solving step`}>
+          {walkthrough.values.map((digit, index) => digit ? <span className={`cell ${previousValues?.[index] === 0 ? "walkthrough-value" : ""}`} key={index}>{digit}</span> : <span className="cell snyder walkthrough-snyder" key={index}>{Array.from({ length: 9 }, (_, candidate) => {
+            const candidateDigit = candidate + 1;
+            const eliminatedNow = walkthrough.removed.some((removal) => removal.cell === index && removal.digit === candidateDigit);
+            const remains = Boolean(walkthrough.candidates[index] & bit(candidateDigit));
+            return <i className={eliminatedNow ? "removed-now" : remains ? "" : "already-removed"} key={candidate}>{candidateDigit}</i>;
+          })}</span>)}
+          {edges.map((edge, index) => <BorderClue edge={edge} key={index} />)}
+        </div>
+      </> : <p className="notice">No imported classical technique applies after the border constraints. The puzzle is unique, but needs a variant-specific deduction beyond this walkthrough.</p>}
+      <div className="tally"><h3>Technique tally</h3>{Object.entries(analysis.tally).length ? <ul><li className="tally-header"><span>Technique</span><b>Steps</b></li>{Object.keys(analysis.tally).map((technique) => <li key={technique}><span>{technique}</span><b>{analysis.steps.flatMap((step, index) => step.tech === technique ? [index + 1] : []).join(", ")}</b></li>)}</ul> : <p>None yet.</p>}</div>
+    </>}
+  </section>;
 }
 
 export default function Home() {
-  const [puzzle, setPuzzle] = useState(() => makePuzzle());
-  const [values, setValues] = useState(() => [...puzzle.givens]);
-  const [message, setMessage] = useState("Ready when you are.");
-  const filled = values.filter(Boolean).length;
-  const newPuzzle = () => { const next = makePuzzle(); setPuzzle(next); setValues([...next.givens]); setMessage("A fresh constraint map is on the board."); };
-  const solve = () => { const solved = solveEitherOr(values, puzzle.edges); if (solved) { setValues(solved); setMessage("Solved — every border clue is satisfied."); } else setMessage("No solution from these entries. Check any changes and try again."); };
-  const edgeCount = useMemo(() => puzzle.edges.length, [puzzle]);
-  const importedFamilies = Object.keys(classicTechniqueModules).length;
+  const [puzzle, setPuzzle] = useState<ReturnType<typeof makePuzzle> | null>(null);
+  const [analysis, setAnalysis] = useState<PuzzleAnalysis | null>(null);
+  const [dugAnalysis, setDugAnalysis] = useState<PuzzleAnalysis | null>(null);
+  const [dug, setDug] = useState<{ edges: Edge[]; removed: number; target: number; targetReached: boolean; targetRemaining: number; dugToLimit: boolean } | null>(null);
+  const [generationTimes, setGenerationTimes] = useState<{ completed: number; removed: number; dug?: number } | null>(null);
+  const [digProgress, setDigProgress] = useState<number | null>(null);
+  const [remainingClueTarget, setRemainingClueTarget] = useState(45);
+  const [digUntilStuck, setDigUntilStuck] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [haltRequested, setHaltRequested] = useState(false);
+  const [generationAttempts, setGenerationAttempts] = useState(0);
+  const [liveBorderCount, setLiveBorderCount] = useState(144);
+  const [generationElapsed, setGenerationElapsed] = useState(0);
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
+  const haltRef = useRef(false);
+  const generate = async () => {
+    const targetRemaining = remainingClueTarget;
+    const removeUntilStuck = digUntilStuck;
+    let attempts = 0;
+    const started = performance.now();
+    haltRef.current = false;
+    setGenerating(true);
+    setHaltRequested(false);
+    setGenerationAttempts(0);
+    setLiveBorderCount(144);
+    setGenerationElapsed(0);
+    setDigProgress(null);
+    setPuzzle(null);
+    setDug(null);
+    setAnalysis(null);
+    setDugAnalysis(null);
+    const timer = window.setInterval(() => setGenerationElapsed(performance.now() - started), 100);
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+    while (!haltRef.current) {
+      attempts++;
+      setGenerationAttempts(attempts);
+      const completedStarted = performance.now();
+      const next = makePuzzle();
+      const completed = performance.now() - completedStarted;
+      const removedStarted = performance.now();
+      snyderCandidates(next.edges);
+      const removed = performance.now() - removedStarted;
+      const nextAnalysis = analyzePuzzle(next.edges);
+      if (nextAnalysis.solutionCount === 1 && !haltRef.current) {
+        const dugStarted = performance.now();
+        setDigProgress(0);
+        const dugPuzzleResult = await digPuzzle(next.edges, removeUntilStuck ? next.edges.length : next.edges.length - targetRemaining, (tested, total, remaining) => { setDigProgress(Math.round(tested / total * 100)); setLiveBorderCount(remaining); }, () => haltRef.current);
+        if (!dugPuzzleResult.halted && (removeUntilStuck || dugPuzzleResult.targetReached)) {
+          snyderCandidates(dugPuzzleResult.edges);
+          const dugElapsed = performance.now() - dugStarted;
+          setPuzzle(next);
+          setAnalysis(nextAnalysis);
+          setDug({ ...dugPuzzleResult, targetRemaining: removeUntilStuck ? dugPuzzleResult.edges.length : next.edges.length - dugPuzzleResult.target, dugToLimit: removeUntilStuck });
+          setDugAnalysis(analyzePuzzle(dugPuzzleResult.edges));
+          setGenerationTimes({ completed, removed, dug: dugElapsed });
+          setDigProgress(null);
+          setGenerationElapsed(performance.now() - started);
+          window.clearInterval(timer);
+          setGenerating(false);
+          return;
+        }
+      }
+      setDigProgress(null);
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+    }
+    setDigProgress(null);
+    setGenerationElapsed(performance.now() - started);
+    window.clearInterval(timer);
+    setGenerating(false);
+    setHaltRequested(false);
+  };
+  const haltGeneration = () => { haltRef.current = true; setHaltRequested(true); };
+  const copyDug = async () => { if (!dug) return; await navigator.clipboard.writeText(encodeCompactPuzzle(dug.edges)); setCopyStatus("144-character string copied."); };
   return <main>
-    <nav><div className="brand"><i>∥</i><span>Either Or</span></div><div className="nav-note">Generator & solver <b>BETA</b></div></nav>
-    <section className="hero"><p className="eyebrow">A sudoku with a little ambiguity</p><h1>Follow the clues<br /><em>between</em> the cells.</h1><p className="lede">Normal Sudoku rules apply. A digit placed on a shared border belongs in either of the two cells it touches.</p></section>
-    <section className="workspace">
-      <div className="board-panel"><div className="board-top"><div><span className="chip">EITHER / OR</span><h2>Today’s construction</h2></div><span className="count">{filled} / 81 filled</span></div>
-        <div className="board-wrap"><div className="sudoku-board">{values.map((value, i) => <input key={i} aria-label={`row ${Math.floor(i / 9) + 1}, column ${i % 9 + 1}`} value={value || ""} inputMode="numeric" maxLength={1} className={puzzle.givens[i] ? "given" : ""} onChange={(e) => { const n = Number(e.target.value.replace(/[^1-9]/g, "")); if (!puzzle.givens[i]) setValues((old) => old.map((v, j) => j === i ? (n || 0) : v)); }} />)}{puzzle.edges.map((edge, i) => <BorderClue edge={edge} key={i} />)}</div></div>
-        <div className="board-footer"><span className="status-dot" />{message}</div>
-      </div>
-      <aside className="control-panel"><p className="eyebrow">Puzzle controls</p><h2>Think sideways.</h2><p>There are <strong>{edgeCount} border clues</strong> woven into this grid. Use the shared boundary as a small, local either/or rule.</p><button className="primary" onClick={solve}>Solve puzzle <span>→</span></button><button className="secondary" onClick={newPuzzle}>Generate new</button><div className="rule"><span>How it works</span><p>A border <b>7</b> means the two neighbouring cells contain a 7 in one place or the other.</p></div></aside>
-    </section>
-    <section className="techniques"><div><p className="eyebrow">Solver library</p><h2>Classical logic, kept close at hand.</h2><p>The underlying GPL-3.0 TypeScript engine is derived from sudokUI and has {importedFamilies} imported technique modules covering the requested families. Classic eliminations remain sound alongside the additional either/or constraints.</p></div><div className="family-grid">{Object.entries(techniqueFamilies).map(([family, techniques]) => <article key={family}><h3>{family}</h3><p>{techniques.join(" · ")}</p></article>)}</div></section>
-    <footer>Either Or Sudoku <span>•</span> Built for deliberate pencil marks <span>•</span> <a href="https://github.com/AImenes/sudokUI">Engine attribution</a></footer>
+    <header><h1>Either Or Sudoku</h1><div className="header-actions"><a href="/techniques">Technique library</a><details className="generator-menu"><summary>Menu</summary><div><a href="/custom-build">Custom Build</a><a href="/verify">Verify</a><a href="/import">Import</a><a href="/simulation">Simulation</a></div></details>{generating && <button className="halt-button" onClick={haltGeneration} disabled={haltRequested}>{haltRequested ? "Halting…" : "Halt generate"}</button>}</div></header>
+    <div className="generate-controls"><label className="dig-target">Stop generating when I have<input type="number" min="0" max="144" step="1" value={remainingClueTarget} onChange={(event) => setRemainingClueTarget(Math.max(0, Math.min(144, Number(event.target.value) || 0)))} disabled={generating || digUntilStuck} />border clues.</label><label className="dig-until-stuck"><input type="checkbox" checked={digUntilStuck} onChange={(event) => setDigUntilStuck(event.target.checked)} disabled={generating} />Dig until no clue can be removed</label><button onClick={generate} disabled={generating}>{generating ? "Generating…" : "Generate"}</button></div>
+    {generationAttempts > 0 && <p className="generator-status" aria-live="polite">{generating ? `Attempt ${generationAttempts}${digProgress !== null ? ` · ${liveBorderCount} border clues left · digging ${digProgress}%` : ""} · ${formatElapsed(generationElapsed)}` : puzzle ? `Dug puzzle generated on attempt ${generationAttempts} in ${formatElapsed(generationElapsed)}` : `Generation halted after ${generationAttempts} attempt${generationAttempts === 1 ? "" : "s"} in ${formatElapsed(generationElapsed)}`}</p>}
+    {puzzle && <div className="puzzle-sections">
+      <details className="puzzle-section"><summary><span>Completed grid</span><small>{generationTimes && `Generated in ${formatElapsed(generationTimes.completed)}`}</small></summary><div className="puzzle-content"><div className="sudoku-board" aria-label="Generated completed Either Or Sudoku grid">{puzzle.solution.map((digit, index) => <span className="cell" key={index}>{digit}</span>)}{puzzle.edges.map((edge, index) => <BorderClue edge={edge} key={index} />)}</div></div></details>
+      <details className="puzzle-section"><summary><span>All cells removed</span><small>{generationTimes && `Generated in ${formatElapsed(generationTimes.removed)}`}</small></summary><div className="puzzle-content"><div className="sudoku-board" aria-label="Either Or Sudoku grid with every cell removed">{Array.from({ length: 81 }, (_, index) => <span className="cell" key={index} />)}{puzzle.edges.map((edge, index) => <BorderClue edge={edge} key={index} />)}</div><SolveWalkthrough analysis={analysis} edges={puzzle.edges} label="All cells removed" /></div></details>
+      {dug && <details className="puzzle-section" open><summary><span>Dug puzzle <small>{dugAnalysis?.rating}</small></span><small>{generationTimes?.dug !== undefined && `Generated in ${formatElapsed(generationTimes.dug)}`}</small></summary><div className="puzzle-content"><p className="dig-summary">{dug.dugToLimit ? `${dug.edges.length} border clues remain · no further clue can be removed · unique solution retained` : `${dug.edges.length} of ${dug.targetRemaining} requested border clues remain · ${dug.removed} removed · unique solution retained`}</p><div className="sudoku-board" aria-label="Dug Either Or Sudoku grid">{Array.from({ length: 81 }, (_, index) => <span className="cell" key={index} />)}{dug.edges.map((edge, index) => <BorderClue edge={edge} key={index} />)}</div><div className="copy-action"><button onClick={copyDug}>Copy 144-character string to clipboard</button>{copyStatus && <span>{copyStatus}</span>}</div><SolveWalkthrough analysis={dugAnalysis} edges={dug.edges} label="Dug puzzle" /></div></details>}
+    </div>}
   </main>;
 }

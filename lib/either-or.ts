@@ -7,13 +7,28 @@ const base = [
 ];
 
 export function makePuzzle() {
-  const solution = base.map((v) => ((v + 3) % 9) + 1);
+  const shuffle = <T,>(items: T[]) => {
+    const out = [...items];
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+  };
+  const digits = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  const rows = shuffle([0, 1, 2]).flatMap((band) => shuffle([0, 1, 2]).map((row) => band * 3 + row));
+  const columns = shuffle([0, 1, 2]).flatMap((stack) => shuffle([0, 1, 2]).map((column) => stack * 3 + column));
+  const solution = rows.flatMap((row) => columns.map((column) => digits[base[row * 9 + column] - 1]));
   const givens = Array(81).fill(0);
-  [0, 4, 8, 10, 14, 18, 20, 24, 29, 33, 38, 42, 47, 52, 56, 60, 64, 68, 72, 76, 80, 31, 49, 67, 12, 70].forEach((i) => { givens[i] = solution[i]; });
-  const candidates: Edge[] = [];
-  for (let r = 0; r < 9; r++) for (let c = 0; c < 8; c++) candidates.push({ a: r * 9 + c, b: r * 9 + c + 1, digit: solution[r * 9 + c] });
-  for (let r = 0; r < 8; r++) for (let c = 0; c < 9; c++) candidates.push({ a: r * 9 + c, b: (r + 1) * 9 + c, digit: solution[(r + 1) * 9 + c] });
-  const edges = candidates.filter((_, i) => i % 4 === 1).slice(0, 38);
+  const edges: Edge[] = [];
+  for (let r = 0; r < 9; r++) for (let c = 0; c < 8; c++) {
+    const a = r * 9 + c, b = a + 1;
+    edges.push({ a, b, digit: Math.random() < .5 ? solution[a] : solution[b] });
+  }
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 9; c++) {
+    const a = r * 9 + c, b = a + 9;
+    edges.push({ a, b, digit: Math.random() < .5 ? solution[a] : solution[b] });
+  }
   return { givens, edges, solution };
 }
 
@@ -41,4 +56,25 @@ export function solveEitherOr(start: number[], edges: Edge[]) {
     return false;
   };
   return visit() ? board : null;
+}
+
+/**
+ * A border clue must occupy one of its two endpoints. Its digit therefore
+ * cannot occupy any other cell that sees both endpoints: the shared row (or
+ * column) and their shared box. This is the first layer of Snyder marks for
+ * an Either Or puzzle.
+ */
+export function snyderCandidates(edges: Edge[]) {
+  const candidates = Array.from({ length: 81 }, () => new Set([1, 2, 3, 4, 5, 6, 7, 8, 9]));
+  const sharesHouse = (a: number, b: number) => {
+    const rowA = Math.floor(a / 9), columnA = a % 9;
+    const rowB = Math.floor(b / 9), columnB = b % 9;
+    return rowA === rowB || columnA === columnB || (Math.floor(rowA / 3) === Math.floor(rowB / 3) && Math.floor(columnA / 3) === Math.floor(columnB / 3));
+  };
+  for (const edge of edges) {
+    for (let cell = 0; cell < 81; cell++) {
+      if (cell !== edge.a && cell !== edge.b && sharesHouse(cell, edge.a) && sharesHouse(cell, edge.b)) candidates[cell].delete(edge.digit);
+    }
+  }
+  return candidates.map((set) => [...set]);
 }
