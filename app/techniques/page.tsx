@@ -2,7 +2,7 @@ import { ALL_TECHS, isTemporarilyDisabled, TECHS, type Tech } from "@/lib/sudoku
 
 export default function TechniqueLibrary() {
   return <main className="technique-library">
-    <header><h1><a href="/">Either Or Sudoku</a></h1><details className="generator-menu"><summary>Menu</summary><div><a href="/">Generate</a><a href="/custom-build">Custom Build</a><a href="/verify">Verify</a><a href="/import">Import</a></div></details></header>
+    <header><h1><a href="/">Either Or Sudoku</a></h1><details className="generator-menu"><summary>Menu</summary><div><a href="/">Generate</a><a href="/custom-build">Custom Build</a><a href="/verify">Verify</a><a href="/import">Import</a><a href="/simulation">Simulation</a><a href="/techniques">Technique library</a></div></details></header>
     <section>
       <p className="library-kicker">Imported solving repertoire</p>
       <h2>Technique library</h2>

@@ -12,6 +12,11 @@ const borderPositions: BorderPosition[] = [
   ...Array.from({ length: 8 }, (_, row) => Array.from({ length: 9 }, (_, column) => ({ id: `v-${row}-${column}`, orientation: "down" as const, line: row + 1, offset: column + .5, label: `between column ${column + 1}, rows ${row + 1} and ${row + 2}` }))).flat(),
 ];
 
+const layoutPositions = [
+  ...borderPositions.filter((position) => position.orientation === "across"),
+  ...borderPositions.filter((position) => position.orientation === "down").sort((left, right) => left.offset - right.offset || left.line - right.line),
+];
+
 function formatElapsed(milliseconds: number) {
   return milliseconds >= 1000 ? `${(milliseconds / 1000).toFixed(2)} s` : `${milliseconds.toFixed(1)} ms`;
 }
@@ -54,8 +59,11 @@ export default function CustomBuild() {
   const [attempts, setAttempts] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
-  const [minimumDifficulty, setMinimumDifficulty] = useState(500);
+  const [minimumDifficulty, setMinimumDifficulty] = useState(0);
   const [maximumDifficulty, setMaximumDifficulty] = useState(2000);
+  const [randomBorderCount, setRandomBorderCount] = useState(25);
+  const [layoutText, setLayoutText] = useState("");
+  const [layoutStatus, setLayoutStatus] = useState<string | null>(null);
   const haltRef = useRef(false);
   const toggle = (id: string) => setSelected((current) => {
     setResult(null);
@@ -64,6 +72,47 @@ export default function CustomBuild() {
     next.has(id) ? next.delete(id) : next.add(id);
     return next;
   });
+  const placeRandomBorders = () => {
+    const count = Math.max(10, Math.min(144, Math.floor(randomBorderCount) || 10));
+    const shuffled = [...borderPositions];
+    for (let index = shuffled.length - 1; index > 0; index--) {
+      const swapIndex = Math.floor(Math.random() * (index + 1));
+      [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+    }
+    setSelected(new Set(shuffled.slice(0, count).map((position) => position.id)));
+    setResult(null);
+    setMessage(null);
+    setCopyStatus(null);
+  };
+  const clearBorders = () => {
+    setSelected(new Set());
+    setResult(null);
+    setMessage(null);
+    setCopyStatus(null);
+  };
+  const exportLayout = async () => {
+    const text = layoutPositions.map((position) => selected.has(position.id) ? "1" : "0").join("");
+    setLayoutText(text);
+    try {
+      await navigator.clipboard.writeText(text);
+      setLayoutStatus("144-character layout copied to clipboard.");
+    } catch {
+      setLayoutStatus("Layout is ready in the text box. Clipboard access was unavailable.");
+    }
+  };
+  const importLayout = () => {
+    const text = layoutText.replace(/\s/g, "");
+    if (!/^[01]{144}$/.test(text)) {
+      setLayoutStatus("Enter exactly 144 characters, using only 0 and 1.");
+      return;
+    }
+    setSelected(new Set(layoutPositions.filter((position, index) => text[index] === "1").map((position) => position.id)));
+    setResult(null);
+    setMessage(null);
+    setCopyStatus(null);
+    setLayoutText(text);
+    setLayoutStatus(`${[...text].filter((value) => value === "1").length} green border cells imported.`);
+  };
   const build = async () => {
     const blueprint = new Set(selected);
     const started = performance.now();
@@ -120,11 +169,13 @@ export default function CustomBuild() {
     }
   };
   return <main className="custom-build">
-    <header><h1><a href="/">Either Or Sudoku</a></h1><details className="generator-menu"><summary>Menu</summary><div><a href="/">Generate</a><a href="/verify">Verify</a><a href="/import">Import</a><a href="/techniques">Technique library</a></div></details></header>
+    <header><h1><a href="/">Either Or Sudoku</a></h1><details className="generator-menu"><summary>Menu</summary><div><a href="/">Generate</a><a href="/custom-build">Custom Build</a><a href="/verify">Verify</a><a href="/import">Import</a><a href="/simulation">Simulation</a><a href="/techniques">Technique library</a></div></details></header>
     <section>
       <h2 className="grid-heading">Custom Build</h2>
       <p className="build-tally" aria-live="polite"><b>{selected.size}</b> / 144 border cells selected</p>
-      <div className="difficulty-range"><span>Difficulty score</span><label>From <input type="number" min="0" value={minimumDifficulty} onChange={(event) => setMinimumDifficulty(Math.max(0, Number(event.target.value) || 0))} disabled={building} /></label><label>To <input type="number" min="0" value={maximumDifficulty} onChange={(event) => setMaximumDifficulty(Math.max(0, Number(event.target.value) || 0))} disabled={building} /></label></div>
+      <div className="random-border-controls"><label>Random green border cells <input type="number" min="10" max="144" value={randomBorderCount} onChange={(event) => setRandomBorderCount(Math.max(10, Math.min(144, Number(event.target.value) || 10)))} disabled={building} /></label><button type="button" onClick={placeRandomBorders} disabled={building}>Place randomly</button><button type="button" onClick={clearBorders} disabled={building || selected.size === 0}>Clear green cells</button></div>
+      <div className="layout-transfer"><label htmlFor="green-border-layout">Green-cell layout (144 × 0/1)</label><textarea id="green-border-layout" value={layoutText} onChange={(event) => setLayoutText(event.target.value.replace(/\s/g, ""))} maxLength={144} disabled={building} aria-describedby="green-border-layout-help" /><small id="green-border-layout-help">The first 72 positions are row borders; the final 72 are column borders. 1 means selected.</small><div><button type="button" onClick={importLayout} disabled={building}>Import layout</button><button type="button" onClick={exportLayout} disabled={building}>Export &amp; copy layout</button></div>{layoutStatus && <p role="status">{layoutStatus}</p>}</div>
+      <div className="difficulty-range"><span>Difficulty score</span><label>From <select value={minimumDifficulty} onChange={(event) => setMinimumDifficulty(Number(event.target.value))} disabled={building}>{[0, 500, 800, 1000, 1200, 1400, 1800].map((value) => <option key={value} value={value}>{value}</option>)}</select></label><label>To <select value={maximumDifficulty} onChange={(event) => setMaximumDifficulty(Number(event.target.value))} disabled={building}>{[500, 1000, 2000, 3000, 1000000].map((value) => <option key={value} value={value}>{value}</option>)}</select></label></div>
       <div className="sudoku-board custom-board" aria-label="Empty Sudoku grid with selectable border positions">
         {Array.from({ length: 81 }, (_, index) => <span className="cell" aria-hidden="true" key={index} />)}
         {borderPositions.map((position) => {
