@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-static";
+
 import { useRef, useState } from "react";
 import { makePuzzle, snyderCandidates, type Edge } from "@/lib/either-or";
 import { analyzePuzzle, digPuzzle, type PuzzleAnalysis } from "@/lib/solve-analysis";

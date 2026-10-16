@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-static";
+
 import { useState } from "react";
 import { decodeCompactPuzzle } from "@/lib/compact";
 import { findSolutions } from "@/lib/solve-analysis";

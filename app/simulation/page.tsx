@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-static";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { makePuzzle } from "@/lib/either-or";
 import { encodeCompactPuzzle } from "@/lib/compact";

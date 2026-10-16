@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { GitHubPagesNavigation } from "./github-pages-navigation";
 
 export const metadata: Metadata = {
   title: "Either Or Sudoku",
@@ -17,7 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased"><GitHubPagesNavigation />{children}</body>
     </html>
   );
 }
