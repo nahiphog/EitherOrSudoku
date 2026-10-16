@@ -33,6 +33,11 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_GITHUB_PAGES_BASE: /EitherOrSudoku
+      # Vinext writes prefixed static assets below the project-name directory,
+      # while the HTML correctly requests them below the Pages site root.
+      # Mirror that directory into the artifact root so those URLs resolve.
+      - name: Place static assets at the Pages base path
+        run: cp -R dist/client/EitherOrSudoku/_next dist/client/_next
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
