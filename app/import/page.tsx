@@ -7,6 +7,7 @@ import { decodeCompactPuzzle } from "@/lib/compact";
 import { analyzePuzzle, type PuzzleAnalysis } from "@/lib/solve-analysis";
 import type { Edge } from "@/lib/either-or";
 import { bit } from "@/lib/sudokui/board";
+import { BorderInput } from "@/app/border-input";
 
 function BorderClue({ edge }: { edge: Edge }) {
   const rowA = Math.floor(edge.a / 9), columnA = edge.a % 9;
@@ -55,8 +56,9 @@ export default function ImportPage() {
     setAnalysis(next);
   };
   const clear = () => { setText(""); setAnalysis(null); setEdges(null); setError(null); setElapsed(null); };
+  const changeText = (value: string) => { setText(value); setAnalysis(null); setEdges(null); setError(null); setElapsed(null); };
   return <main className="tool-page">
     <header><h1><a href="/">Either Or Sudoku</a></h1><details className="generator-menu"><summary>Menu</summary><div><a href="/">Generate</a><a href="/custom-build">Custom Build</a><a href="/verify">Verify</a><a href="/import">Import</a><a href="/simulation">Simulation</a><a href="/techniques">Technique library</a></div></details></header>
-    <section className="tool-section"><h2 className="grid-heading">Import</h2><p>Paste a 144-character border string to verify and analyze it.</p><textarea value={text} onChange={(event) => setText(event.target.value.replace(/\s/g, ""))} maxLength={144} aria-label="144-character puzzle string" /><div className="build-action"><button onClick={async () => setText((await navigator.clipboard.readText()).replace(/\s/g, ""))}>Paste clipboard</button><button onClick={clear}>Clear</button><button onClick={importPuzzle}>Import puzzle</button></div>{edges && <p className="build-status">{edges.length} border cells given · analyzed in {elapsed !== null && `${elapsed.toFixed(1)} ms`}</p>}{error && <p className="notice">{error}</p>}{analysis && edges && <ImportWalkthrough key={text} analysis={analysis} edges={edges} />}</section>
+    <section className="tool-section"><h2 className="grid-heading">Import</h2><p>Enter a puzzle using a border string or the grid to verify and analyze it.</p><BorderInput text={text} onChange={changeText} /><div className="build-action"><button onClick={async () => changeText((await navigator.clipboard.readText()).replace(/\s/g, ""))}>Paste clipboard</button><button onClick={clear}>Clear</button><button onClick={importPuzzle}>Import puzzle</button></div>{edges && <p className="build-status">{edges.length} border cells given · analyzed in {elapsed !== null && `${elapsed.toFixed(1)} ms`}</p>}{error && <p className="notice">{error}</p>}{analysis && edges && <ImportWalkthrough key={text} analysis={analysis} edges={edges} />}</section>
   </main>;
 }
