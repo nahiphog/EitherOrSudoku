@@ -2,6 +2,7 @@ import { bit, emptyGrid, isSolved, PEERS } from "./sudokui/board";
 import { applyStep, findNextStep } from "./sudokui/humanSolver";
 import { TECHS, type Tech } from "./sudokui/ratings";
 import { snyderCandidates, type Edge } from "./either-or";
+import { solveExact } from "./exact-solver";
 
 export type WalkthroughStep = {
   tech: string;
@@ -35,28 +36,9 @@ export function countSolutions(edges: Edge[]) {
 
 /** Finds at most `limit` valid completed grids, for verification displays. */
 export function findSolutions(edges: Edge[], limit = 2) {
-  const board = Array(81).fill(0);
-  const baseCandidates = snyderCandidates(edges);
-  const edgeMap = Array.from({ length: 81 }, () => [] as Edge[]);
-  edges.forEach((edge) => { edgeMap[edge.a].push(edge); edgeMap[edge.b].push(edge); });
-  const canPlace = (cell: number, digit: number) => baseCandidates[cell].includes(digit) && !PEERS[cell].some((peer) => board[peer] === digit) && edgeMap[cell].every((edge) => {
-    const other = edge.a === cell ? edge.b : edge.a;
-    return digit === edge.digit || board[other] === 0 || board[other] === edge.digit;
-  });
-  const solutions: number[][] = [];
-  const visit = (): void => {
-    if (solutions.length >= limit) return;
-    let cell = -1, options: number[] = [];
-    for (let i = 0; i < 81; i++) if (!board[i]) {
-      const choices = Array.from({ length: 9 }, (_, index) => index + 1).filter((digit) => canPlace(i, digit));
-      if (!choices.length) return;
-      if (cell < 0 || choices.length < options.length) { cell = i; options = choices; }
-    }
-    if (cell < 0) { if (edges.every((edge) => board[edge.a] === edge.digit || board[edge.b] === edge.digit)) solutions.push([...board]); return; }
-    for (const digit of options) { board[cell] = digit; visit(); board[cell] = 0; if (solutions.length >= limit) return; }
-  };
-  visit(); return solutions;
+  return solveExact(edges, limit);
 }
+
 
 /**
  * Conventional clue digging adapted for Either Or borders. A proposed
