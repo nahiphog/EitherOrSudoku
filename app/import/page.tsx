@@ -2,6 +2,8 @@
 
 export const dynamic = "force-static";
 
+import { CopyCompleted } from "@/app/copy-completed";
+import { sortedTechniques } from "@/lib/technique-order";
 import { useState } from "react";
 import { decodeCompactPuzzle } from "@/lib/compact";
 import { analyzePuzzle, type PuzzleAnalysis } from "@/lib/solve-analysis";
@@ -27,14 +29,14 @@ function ImportWalkthrough({ analysis, edges }: { analysis: PuzzleAnalysis; edge
     ? { tech: "Initial candidate map", label: "Step 0", description: "Border-clue eliminations are applied before any classical technique.", values: analysis.initial.values, candidates: analysis.initial.candidates, removed: [] }
     : analysis.steps[visibleStep - 1];
   return <section className="walkthrough import-walkthrough">
-    <h2>Solve walkthrough</h2>
+    <h2>Solve walkthrough</h2><CopyCompleted values={analysis.steps[analysis.steps.length - 1]?.values ?? analysis.initial.values} />
     <div className="analysis-summary"><span><b>{analysis.solvedByLogic ? "Solved logically" : "Logic paused"}</b><small>{analysis.rating}</small></span><span><b>{analysis.steps.length}</b><small>technique steps</small></span></div>
     {walkthrough ? <><div className="step-card"><div><span className="tech-label">{walkthrough.label}</span><h3>{walkthrough.tech}</h3><p>{walkthrough.description}</p></div><span>{visibleStep} / {maxStep}</span></div>
       <input className="step-slider" type="range" min="0" max={maxStep} value={visibleStep} onChange={(event) => setStepIndex(Number(event.target.value))} aria-label="Imported puzzle walkthrough step" />
       <div className="step-controls" aria-label="Imported puzzle walkthrough controls"><button onClick={() => setStepIndex(0)} disabled={visibleStep === 0} aria-label="Go to step 0">&lt;&lt;</button><button onClick={() => setStepIndex((index) => Math.max(0, Math.min(maxStep, index) - 1))} disabled={visibleStep === 0} aria-label="Go to previous step">&lt;</button><button onClick={() => setStepIndex((index) => Math.min(maxStep, index + 1))} disabled={visibleStep === maxStep} aria-label="Go to next step">&gt;</button><button onClick={() => setStepIndex(maxStep)} disabled={visibleStep === maxStep} aria-label="Go to final step">&gt;&gt;</button></div>
       <div className="sudoku-board walkthrough-board" aria-label="Imported puzzle walkthrough">{walkthrough.values.map((digit, index) => digit ? <span className={`cell ${previousValues[index] === 0 ? "walkthrough-value" : ""}`} key={index}>{digit}</span> : <span className="cell snyder walkthrough-snyder" key={index}>{Array.from({ length: 9 }, (_, candidate) => { const value = candidate + 1; const removedNow = walkthrough.removed.some((removal) => removal.cell === index && removal.digit === value); const remains = Boolean(walkthrough.candidates[index] & bit(value)); return <i className={removedNow ? "removed-now" : remains ? "" : "already-removed"} key={value}>{value}</i>; })}</span>)}{edges.map((edge, index) => <BorderClue edge={edge} key={index} />)}</div>
     </> : <p className="notice">No imported classical technique applies after the border constraints.</p>}
-    <div className="tally"><h3>Technique tally</h3>{Object.keys(analysis.tally).length ? <ul><li className="tally-header"><span>Technique</span><b>Steps</b></li>{Object.keys(analysis.tally).map((technique) => <li key={technique}><span>{technique}</span><b>{analysis.steps.flatMap((step, index) => step.tech === technique ? [index + 1] : []).join(", ")}</b></li>)}</ul> : <p>None yet.</p>}</div>
+    <div className="tally"><h3>Technique tally</h3>{Object.keys(analysis.tally).length ? <ul><li className="tally-header"><span>Technique</span><b>Steps</b></li>{sortedTechniques(analysis.tally).map((technique) => <li key={technique}><span>{technique}</span><b>{analysis.steps.flatMap((step, index) => step.tech === technique ? [index + 1] : []).join(", ")}</b></li>)}</ul> : <p>None yet.</p>}</div>
   </section>;
 }
 

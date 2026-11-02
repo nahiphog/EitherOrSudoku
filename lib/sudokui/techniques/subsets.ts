@@ -43,7 +43,7 @@ function subsetName(tech: Tech): string {
     case 'LOCKED_PAIR':
       return tr`Locked Pair`;
     case 'LOCKED_TRIPLE':
-      return tr`Locked Triple`;
+      return tr`Naked Triple (box/line intersection)`;
     case 'HIDDEN_PAIR':
       return tr`Hidden Pair`;
     case 'HIDDEN_TRIPLE':

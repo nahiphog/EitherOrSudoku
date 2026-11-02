@@ -89,7 +89,7 @@ export const TECHS = {
   NAKED_SINGLE: t(200, 'Naked Single', 'Beginner', 'Singles', 4),
   HIDDEN_SINGLE: t(300, 'Hidden Single', 'Beginner', 'Singles', 14),
   LOCKED_PAIR: t(1000, 'Locked Pair', 'Medium', 'Intersections', 40),
-  LOCKED_TRIPLE: t(1100, 'Locked Triple', 'Medium', 'Intersections', 60),
+  LOCKED_TRIPLE: t(1100, 'Naked Triple (box/line intersection)', 'Medium', 'Intersections', 60),
   LOCKED_CANDIDATES_1: t(1200, 'Locked Candidates (Pointing)', 'Medium', 'Intersections', 50),
   LOCKED_CANDIDATES_2: t(1210, 'Locked Candidates (Claiming)', 'Medium', 'Intersections', 50),
   NAKED_PAIR: t(1300, 'Naked Pair', 'Medium', 'Subsets', 60),
