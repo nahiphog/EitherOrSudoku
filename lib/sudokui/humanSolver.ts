@@ -58,7 +58,7 @@ const FINDERS: Partial<Record<Tech, Finder>> = {
   LOCKED_CANDIDATES_1: findLockedCandidates1,
   LOCKED_CANDIDATES_2: findLockedCandidates2,
   NAKED_PAIR: (g) => findNakedSubset(g, 2, false),
-  NAKED_TRIPLE: (g) => findNakedSubset(g, 3, false),
+  NAKED_TRIPLE: (g) => findNakedSubset(g, 3, false) ?? findNakedSubset(g, 3, true),
   HIDDEN_PAIR: (g) => findHiddenSubset(g, 2),
   HIDDEN_TRIPLE: (g) => findHiddenSubset(g, 3),
   NAKED_QUADRUPLE: (g) => findNakedSubset(g, 4, false),

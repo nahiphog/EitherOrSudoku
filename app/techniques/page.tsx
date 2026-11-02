@@ -11,7 +11,7 @@ export default function TechniqueLibrary() {
       <p className="library-intro">Ratings follow the imported sudokUI / HoDoKu-style catalogue. Lower scores are tried first; each technique shows its difficulty band and score. Techniques from Unique Rectangle Type 1 onward are temporarily disabled, except Brute Force.</p>
       <div className="technique-table" role="table" aria-label="Sudoku technique ratings">
         <div className="technique-row technique-head" role="row"><span role="columnheader">Technique</span><span role="columnheader">Family</span><span role="columnheader">Difficulty</span><span role="columnheader">Rating</span></div>
-        {ALL_TECHS.map((key) => {
+        {ALL_TECHS.filter((key) => key !== "LOCKED_TRIPLE").map((key) => {
           const technique = TECHS[key as Tech];
           const disabled = isTemporarilyDisabled(key as Tech);
           return <div className={`technique-row ${technique.implemented ? "" : "unimplemented"} ${disabled ? "temporarily-disabled" : ""}`} role="row" key={key}><span role="cell">{technique.name}{!technique.implemented && " (not implemented)"}{disabled && " (temporarily disabled)"}</span><span role="cell">{technique.category}</span><span role="cell">{technique.level}</span><span role="cell">{technique.score}</span></div>;

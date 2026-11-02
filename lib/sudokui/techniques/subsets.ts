@@ -43,7 +43,7 @@ function subsetName(tech: Tech): string {
     case 'LOCKED_PAIR':
       return tr`Locked Pair`;
     case 'LOCKED_TRIPLE':
-      return tr`Naked Triple (box/line intersection)`;
+      return tr`Naked Triple`;
     case 'HIDDEN_PAIR':
       return tr`Hidden Pair`;
     case 'HIDDEN_TRIPLE':
@@ -102,7 +102,7 @@ export function findNakedSubset(g: Grid, size: number, locked: boolean): Step | 
       const tech: Tech = locked
         ? size === 2
           ? 'LOCKED_PAIR'
-          : 'LOCKED_TRIPLE'
+          : 'NAKED_TRIPLE'
         : (`NAKED_${['', '', 'PAIR', 'TRIPLE', 'QUADRUPLE'][size]}` as Tech);
       const digits = digitsOf(mask);
       const houses = [...unitsWithElims].map(unitName);
