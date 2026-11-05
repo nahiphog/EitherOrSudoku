@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { decodeCompactPuzzle } from "@/lib/compact";
 import { copyGridImage } from "@/lib/grid-image";
 import { BorderInput } from "@/app/border-input";
+import workerUrl from "@/lib/verify.worker.ts?worker&url";
 
 function Grid({ values, other }: { values: number[]; other?: number[] }) {
   return <div className="sudoku-board verify-grid">{values.map((value, index) => <span className={`cell ${other?.[index] !== undefined && other[index] !== value ? "verification-different" : ""}`} key={index}>{value}</span>)}</div>;
@@ -22,7 +23,7 @@ export default function VerifyPage() {
     if (!nextEdges) { setError("Enter exactly 144 digits (0–9)."); setResult(null); return; }
     workerRef.current?.terminate(); setResult(null); setElapsed(null); setEdges(nextEdges); setError(null); setRunning(true);
     try {
-      const worker = new Worker(new URL("../../lib/verify.worker.ts", import.meta.url), { type: "module" });
+      const worker = new Worker(new URL(workerUrl, window.location.origin), { type: "module" });
       workerRef.current = worker;
       worker.onmessage = (event) => {
         if (workerRef.current !== worker) return;
