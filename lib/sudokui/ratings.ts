@@ -108,7 +108,7 @@ export const TECHS = {
   SQUIRMBAG: t(2500, 'Squirmbag', 'Unfair', 'Basic Fish', 470, true, false),
   WHALE: t(2600, 'Whale', 'Unfair', 'Basic Fish', 470, true, false),
   LEVIATHAN: t(2700, 'Leviathan', 'Unfair', 'Basic Fish', 470, true, false),
-  REMOTE_PAIR: t(2800, 'Remote Pair', 'Hard', 'Chains and Loops', 110),
+  REMOTE_PAIR: t(2800, 'Remote Pairs', 'Hard', 'Chains and Loops', 110),
   CHUTE_REMOTE_PAIR: t(2850, 'Chute Remote Pair', 'Hard', 'Chains and Loops', 110),
   BUG_PLUS_1: t(2900, 'BUG+1', 'Hard', 'Uniqueness', 100),
   SKYSCRAPER: t(3000, 'Skyscraper', 'Hard', 'Single Digit Patterns', 130),

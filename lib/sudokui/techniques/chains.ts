@@ -90,7 +90,7 @@ export function findRemotePair(g: Grid): Step | null {
           digits.map((digit) => ({ cell, digit }))
         ),
         links: path ? bivalueCellLinks(g, path, digits[0]) : undefined,
-        description: tr`Remote Pair: the cells ${cellNames(component)} form a chain of ${digits.join('')} pairs; cells seeing both "colors" of the chain lose ${joinAnd(digits)}.`
+        description: tr`Remote Pairs: the cells ${cellNames(component)} form a chain of ${digits.join('')} pairs; cells seeing both "colors" of the chain lose ${joinAnd(digits)}.`
       };
     }
   }
