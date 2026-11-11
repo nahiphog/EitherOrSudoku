@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <title>Either Or Sudoku</title>
+  <rect width="48" height="48" rx="10" fill="#142b2e"/>
+  <g fill="none" stroke-width="3">
+    <rect x="5.5" y="8.5" width="12" height="12" rx="2" stroke="#a8dbbd"/>
+    <rect x="30.5" y="8.5" width="12" height="12" rx="2" stroke="#ffc6a5"/>
+  </g>
+  <circle cx="24" cy="25" r="4" fill="#fffaf0"/>
+  <path d="m12 26 6 7h12l6-7M24 33v8" fill="none" stroke="#fffaf0" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
