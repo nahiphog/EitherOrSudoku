@@ -119,6 +119,7 @@ export const TECHS = {
   XY_WING: t(3300, 'XY-Wing', 'Hard', 'Wings', 160),
   XYZ_WING: t(3400, 'XYZ-Wing', 'Hard', 'Wings', 180),
   WXYZ_WING: t(3450, 'WXYZ-Wing', 'Hard', 'Wings', 200),
+  PHISTOMEFEL_RING: t(3490, 'Phistomefel Ring', 'Hard', 'Miscellaneous', 200),
   UNIQUENESS_1: t(3500, 'Unique Rectangle Type 1', 'Hard', 'Uniqueness', 100),
   UNIQUENESS_2: t(3600, 'Unique Rectangle Type 2', 'Hard', 'Uniqueness', 100),
   UNIQUENESS_3: t(3700, 'Unique Rectangle Type 3', 'Hard', 'Uniqueness', 100),

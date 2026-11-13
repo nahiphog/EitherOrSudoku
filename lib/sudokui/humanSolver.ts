@@ -11,6 +11,7 @@ import { Step } from './steps';
 import { tr } from './text';
 import { Tech, TECHS, Level, LEVELS, LEVEL_MAX_SCORE, SOLVE_ORDER, maxLevel, bandFloor } from './ratings';
 import { findFullHouse, findNakedSingle, findHiddenSingle } from './techniques/singles';
+import { findPhistomefelRing } from './techniques/phistomefel';
 import { findLockedCandidates1, findLockedCandidates2 } from './techniques/intersections';
 import { findNakedSubset, findHiddenSubset } from './techniques/subsets';
 import { findBasicFish, findFinnedFish } from './techniques/fish';
@@ -70,6 +71,7 @@ const FINDERS: Partial<Record<Tech, Finder>> = {
   WHALE: (g) => findBasicFish(g, 6),
   LEVIATHAN: (g) => findBasicFish(g, 7),
   REMOTE_PAIR: findRemotePair,
+  PHISTOMEFEL_RING: findPhistomefelRing,
   CHUTE_REMOTE_PAIR: findChuteRemotePair,
   BUG_PLUS_1: findBugPlus1,
   SKYSCRAPER: (g) => findTurbotFamily(g, 'SKYSCRAPER'),
